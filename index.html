@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+
+<meta charset="UTF-8">
+
+<title>QR Thanh Toán</title>
+
+<style>
+
+body{
+font-family:Arial;
+margin:0;
+background:#f3f3f3;
+}
+
+.header{
+background:linear-gradient(90deg,#0c7c6a,#0f9a8a);
+color:white;
+padding:40px;
+text-align:center;
+}
+
+.header h1{
+margin:0;
+font-size:30px;
+}
+
+.contact{
+margin-top:10px;
+color:yellow;
+font-weight:bold;
+}
+
+.container{
+padding:30px;
+text-align:center;
+}
+
+.search{
+padding:10px;
+width:350px;
+font-size:16px;
+border-radius:6px;
+border:1px solid #ccc;
+}
+
+.qrGrid{
+margin-top:30px;
+display:grid;
+grid-template-columns:repeat(auto-fill,220px);
+gap:20px;
+justify-content:center;
+}
+
+.qr{
+background:white;
+padding:15px;
+border-radius:10px;
+box-shadow:0 3px 10px rgba(0,0,0,0.2);
+}
+
+.qr img{
+width:180px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="header">
+
+<h1>Thu hộ tiền ăn Trường TH và THCS Chu Văn An</h1>
+
+<div class="contact">
+Lê Mạnh Hùng - PGD Đông Hà - ĐT: 0914.179.989
+</div>
+
+</div>
+
+<div class="container">
+
+<input class="search" id="search" placeholder="🔍 Tìm tên / mã học sinh">
+
+<div id="qrContainer" class="qrGrid"></div>
+
+</div>
+
+<script>
+
+let data=[];
+
+fetch("data.json")
+.then(res=>res.json())
+.then(json=>{
+data=json;
+render(data);
+});
+
+function createQR(row){
+
+return `https://img.vietqr.io/image/BIDV-${row.AccountNumber}-compact2.png?amount=${row.Amount}&addInfo=${encodeURIComponent(row.Remark)}&accountName=${encodeURIComponent(row.AccountName)}`;
+
+}
+
+function render(rows){
+
+let container=document.getElementById("qrContainer");
+
+container.innerHTML="";
+
+rows.forEach(row=>{
+
+let qr=createQR(row);
+
+let div=document.createElement("div");
+
+div.className="qr";
+
+div.innerHTML=`
+
+<b>${row.AccountName}</b><br>
+
+${row.Class} - ${row.StudentID}<br><br>
+
+<img src="${qr}"><br><br>
+
+<a href="${qr}" download>
+Tải QR
+</a>
+
+`;
+
+container.appendChild(div);
+
+});
+
+}
+
+document.getElementById("search").addEventListener("keyup",function(){
+
+let keyword=this.value.toLowerCase();
+
+let filtered=data.filter(r=>{
+
+return(
+
+String(r.AccountName).toLowerCase().includes(keyword) ||
+
+String(r.StudentID).toLowerCase().includes(keyword)
+
+);
+
+});
+
+render(filtered);
+
+});
+
+</script>
+
+</body>
+
+</html>
