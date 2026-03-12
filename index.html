@@ -2,8 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-
-<title>BIDV Quảng Trị - Thu hộ tiền ăn</title>
+<title>Thu hộ tiền ăn</title>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -53,7 +52,6 @@ width:180px;
 }
 
 </style>
-
 </head>
 
 <body>
@@ -69,10 +67,6 @@ Lê Mạnh Hùng - PGD Đông Hà - ĐT: 0914.179.989
 </div>
 
 <div class="container">
-
-<input type="file" id="upload" accept=".xlsx">
-
-<br><br>
 
 <select id="classFilter">
 <option value="">Tất cả lớp</option>
@@ -95,15 +89,13 @@ Lê Mạnh Hùng - PGD Đông Hà - ĐT: 0914.179.989
 let students=[]
 let qrImages=[]
 
-document.getElementById("upload").addEventListener("change",handleFile)
+loadExcel()
 
-function handleFile(e){
+async function loadExcel(){
 
-const reader=new FileReader()
+const response=await fetch("data.xlsx")
 
-reader.onload=function(evt){
-
-const data=new Uint8Array(evt.target.result)
+const data=await response.arrayBuffer()
 
 const workbook=XLSX.read(data,{type:"array"})
 
@@ -112,10 +104,6 @@ const sheet=workbook.Sheets[workbook.SheetNames[0]]
 students=XLSX.utils.sheet_to_json(sheet)
 
 render()
-
-}
-
-reader.readAsArrayBuffer(e.target.files[0])
 
 }
 
@@ -129,9 +117,7 @@ qrImages=[]
 
 students.forEach(s=>{
 
-const bank=s.Bank.toLowerCase()
-
-const qr=`https://img.vietqr.io/image/${bank}-${s.AccountNumber}-compact2.png?amount=${s.Amount}&addInfo=${encodeURIComponent(s.Remark)}`
+const qr=`https://img.vietqr.io/image/${s.Bank.toLowerCase()}-${s.AccountNumber}-compact2.png?amount=${s.Amount}&addInfo=${encodeURIComponent(s.Remark)}`
 
 const card=document.createElement("div")
 
@@ -172,8 +158,6 @@ function buildClassFilter(){
 const classes=[...new Set(students.map(s=>s.Class))]
 
 const select=document.getElementById("classFilter")
-
-select.innerHTML='<option value="">Tất cả lớp</option>'
 
 classes.forEach(c=>{
 
