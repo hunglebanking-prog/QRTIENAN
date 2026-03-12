@@ -1,67 +1,54 @@
 <!DOCTYPE html>
-<html lang="vi">
-
+<html>
 <head>
-
 <meta charset="UTF-8">
 
-<title>QR Thanh Toán</title>
+<title>BIDV Quảng Trị - Thu hộ tiền ăn</title>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
 <style>
 
 body{
 font-family:Arial;
 margin:0;
-background:#f3f3f3;
+background:#f2f2f2;
 }
 
 .header{
-background:linear-gradient(90deg,#0c7c6a,#0f9a8a);
+background:#0b6b5c;
 color:white;
-padding:40px;
 text-align:center;
-}
-
-.header h1{
-margin:0;
-font-size:30px;
+padding:25px;
 }
 
 .contact{
-margin-top:10px;
 color:yellow;
 font-weight:bold;
 }
 
 .container{
-padding:30px;
+padding:20px;
 text-align:center;
 }
 
-.search{
-padding:10px;
-width:350px;
-font-size:16px;
-border-radius:6px;
-border:1px solid #ccc;
-}
-
-.qrGrid{
-margin-top:30px;
+.qr-grid{
 display:grid;
 grid-template-columns:repeat(auto-fill,220px);
 gap:20px;
 justify-content:center;
 }
 
-.qr{
+.card{
 background:white;
 padding:15px;
 border-radius:10px;
-box-shadow:0 3px 10px rgba(0,0,0,0.2);
+box-shadow:0 2px 5px rgba(0,0,0,0.2);
 }
 
-.qr img{
+.qr{
 width:180px;
 }
 
@@ -73,7 +60,7 @@ width:180px;
 
 <div class="header">
 
-<h1>Thu hộ tiền ăn Trường TH và THCS Chu Văn An</h1>
+<h2>Thu hộ tiền ăn Trường TH và THCS Chu Văn An</h2>
 
 <div class="contact">
 Lê Mạnh Hùng - PGD Đông Hà - ĐT: 0914.179.989
@@ -83,85 +70,147 @@ Lê Mạnh Hùng - PGD Đông Hà - ĐT: 0914.179.989
 
 <div class="container">
 
-<input class="search" id="search" placeholder="🔍 Tìm tên / mã học sinh">
+<input type="file" id="upload" accept=".xlsx">
 
-<div id="qrContainer" class="qrGrid"></div>
+<br><br>
+
+<select id="classFilter">
+<option value="">Tất cả lớp</option>
+</select>
+
+<button onclick="downloadAll()">Tải toàn bộ QR</button>
+
+<br><br>
+
+<input type="text" id="search" placeholder="Tìm tên / mã học sinh">
+
+<br><br>
+
+<div id="qrContainer" class="qr-grid"></div>
 
 </div>
 
 <script>
 
-let data=[];
+let students=[]
+let qrImages=[]
 
-fetch("data.json")
-.then(res=>res.json())
-.then(json=>{
-data=json;
-render(data);
-});
+document.getElementById("upload").addEventListener("change",handleFile)
 
-function createQR(row){
+function handleFile(e){
 
-return `https://img.vietqr.io/image/BIDV-${row.AccountNumber}-compact2.png?amount=${row.Amount}&addInfo=${encodeURIComponent(row.Remark)}&accountName=${encodeURIComponent(row.AccountName)}`;
+const reader=new FileReader()
 
-}
+reader.onload=function(evt){
 
-function render(rows){
+const data=new Uint8Array(evt.target.result)
 
-let container=document.getElementById("qrContainer");
+const workbook=XLSX.read(data,{type:"array"})
 
-container.innerHTML="";
+const sheet=workbook.Sheets[workbook.SheetNames[0]]
 
-rows.forEach(row=>{
+students=XLSX.utils.sheet_to_json(sheet)
 
-let qr=createQR(row);
-
-let div=document.createElement("div");
-
-div.className="qr";
-
-div.innerHTML=`
-
-<b>${row.AccountName}</b><br>
-
-${row.Class} - ${row.StudentID}<br><br>
-
-<img src="${qr}"><br><br>
-
-<a href="${qr}" download>
-Tải QR
-</a>
-
-`;
-
-container.appendChild(div);
-
-});
+render()
 
 }
 
-document.getElementById("search").addEventListener("keyup",function(){
+reader.readAsArrayBuffer(e.target.files[0])
 
-let keyword=this.value.toLowerCase();
+}
 
-let filtered=data.filter(r=>{
+function render(){
 
-return(
+const container=document.getElementById("qrContainer")
 
-String(r.AccountName).toLowerCase().includes(keyword) ||
+container.innerHTML=""
 
-String(r.StudentID).toLowerCase().includes(keyword)
+qrImages=[]
 
-);
+students.forEach(s=>{
 
-});
+const bank=s.Bank.toLowerCase()
 
-render(filtered);
+const qr=`https://img.vietqr.io/image/${bank}-${s.AccountNumber}-compact2.png?amount=${s.Amount}&addInfo=${encodeURIComponent(s.Remark)}`
 
-});
+const card=document.createElement("div")
+
+card.className="card"
+
+card.innerHTML=`
+
+<b>${s.AccountName}</b><br>
+
+Lớp: ${s.Class}<br>
+
+Mã HS: ${s.StudentID}<br>
+
+Số tiền: ${Number(s.Amount).toLocaleString()} VND
+
+<br><br>
+
+<img src="${qr}" class="qr">
+
+<br><br>
+
+<a href="${qr}" download>Tải QR</a>
+
+`
+
+container.appendChild(card)
+
+qrImages.push({url:qr,name:s.Class+"_"+s.StudentID+"_"+s.AccountName})
+
+})
+
+buildClassFilter()
+
+}
+
+function buildClassFilter(){
+
+const classes=[...new Set(students.map(s=>s.Class))]
+
+const select=document.getElementById("classFilter")
+
+select.innerHTML='<option value="">Tất cả lớp</option>'
+
+classes.forEach(c=>{
+
+const op=document.createElement("option")
+
+op.value=c
+op.textContent=c
+
+select.appendChild(op)
+
+})
+
+}
+
+async function downloadAll(){
+
+const zip=new JSZip()
+
+for(let i=0;i<qrImages.length;i++){
+
+const res=await fetch(qrImages[i].url)
+
+const blob=await res.blob()
+
+zip.file(qrImages[i].name+".png",blob)
+
+}
+
+zip.generateAsync({type:"blob"}).then(function(content){
+
+saveAs(content,"QR_HOCSINH.zip")
+
+})
+
+}
 
 </script>
 
 </body>
-
 </html>
